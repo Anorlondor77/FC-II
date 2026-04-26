@@ -31,8 +31,7 @@ axis([0 40 min(sAM)*1.1 max(sAM)*1.1])
 grid on
 
 [Xam, kam] = FuncioTFZP(sAM, fs, 10*dim);
-XamShift = fftshift(Xam);
-SAm = abs(XamShift);
+SAm = fftshift(abs(Xam));
 
 subplot(2,1,2)
 plot(kam/1e6, SAm, 'LineWidth', 1.2)
@@ -55,9 +54,9 @@ disp(['Index de modulacio m calculat en el temps = ', num2str(m_temps)])
 [~, idx_sb_sup] = min(abs(kam - (fc + fm)));
 [~, idx_sb_inf] = min(abs(kam - (fc - fm)));
 
-A_fc = abs(XamShift(idx_fc));
-A_sb_sup = abs(XamShift(idx_sb_sup));
-A_sb_inf = abs(XamShift(idx_sb_inf));
+A_fc = abs(Xam(idx_fc));
+A_sb_sup = abs(Xam(idx_sb_sup));
+A_sb_inf = abs(Xam(idx_sb_inf));
 
 disp(['To portadora a fc = ', num2str(kam(idx_fc)/1e6), ' MHz'])
 disp(['To lateral superior a fc+fm = ', num2str(kam(idx_sb_sup)/1e6), ' MHz'])
@@ -67,23 +66,23 @@ disp(['To lateral inferior a fc-fm = ', num2str(kam(idx_sb_inf)/1e6), ' MHz'])
 PAMdBm = FuncioPotencia(Xam, kam, Z);
 figure(2)
 Pplot = fftshift(real(PAMdBm));
-plot(kam/1e6, Pplot, 'LineWidth', 1.2)
+PplotRel = Pplot - max(Pplot);
+
+plot(kam/1e6, PplotRel, 'LineWidth', 1.2)
 hold on
-plot(kam(idx_fc)/1e6, Pplot(idx_fc), 'ro', 'MarkerFaceColor', 'r')
-plot(kam(idx_sb_sup)/1e6, Pplot(idx_sb_sup), 'ko', 'MarkerFaceColor', 'k')
-plot(kam(idx_sb_inf)/1e6, Pplot(idx_sb_inf), 'ko', 'MarkerFaceColor', 'k')
+plot(kam(idx_fc)/1e6, PplotRel(idx_fc), 'ro', 'MarkerFaceColor', 'r')
+plot(kam(idx_sb_sup)/1e6, PplotRel(idx_sb_sup), 'ko', 'MarkerFaceColor', 'k')
+plot(kam(idx_sb_inf)/1e6, PplotRel(idx_sb_inf), 'ko', 'MarkerFaceColor', 'k')
 
 xlabel('Freqüència (MHz)')
-ylabel('Potència (dBm)')
-title('Potència del senyal AM')
-axis([2.9 3.5 min(Pplot)-5 max(Pplot)+3])
+ylabel('Potència relativa (dBc)')
+title('Potència del senyal AM (pics principals marcats)')
+axis([2.9 3.5 -80 2])
 grid on
 
 %% Calcul de m a partir de l'espectre
-% En AM: Psband/Pc = (m^2)/4
-P_fc = (1/Z)*(A_fc*conj(A_fc));
-P_sb = (1/Z)*(A_sb_sup*conj(A_sb_sup));
-m_espectre = 2*sqrt(real(P_sb/P_fc));
+% En AM: amplitud lateral = (m/2)*amplitud portadora
+m_espectre = 2*(A_sb_sup/A_fc);
 
 disp(['Index de modulacio m calculat amb l''espectre = ', num2str(m_espectre)])
 disp(['Diferencia lateral-portadora (teoric) = ', num2str(20*log10(m/2)), ' dB'])
