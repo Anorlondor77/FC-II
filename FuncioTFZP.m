@@ -12,7 +12,7 @@ if dimFinal < N
     error('dimFinal ha de ser major o igual que la longitud de x.');
 end
 
-xzp = [x zeros(1, dimFinal - N)];
-X = fftshift(fft(xzp));
-k = (-dimFinal/2:dimFinal/2-1) * (fs/dimFinal);
+X = (1/N)*fft(x,dimFinal);
+k = (0:dimFinal-1)*fs/dimFinal - fs/2;
+
 end

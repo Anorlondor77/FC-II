@@ -17,7 +17,7 @@ v_pas = 0:2.5:(0 + 2.5*(1000-1));
 v_lin = linspace(0, 0 + 2.5*(1000-1), 1000);
 
 %% Matrius
-M = reshape(1:36, 6, 6);
+M = diag(1:6);
 dimM = size(M);
 
 %% Operacions amb matrius
@@ -25,7 +25,7 @@ M_quadrat = M.^2;
 M_mesEscalar = M + 5;
 M_perEscalar = 3*M;
 M_transposada = M.';
-M_inversa = inv(M + eye(6));  % Es desplaça per evitar singularitat
+M_inversa = inv(M);
 
 A = [1 2; 3 4];
 B = [0 1; 2 3];
@@ -40,12 +40,12 @@ el3_vec1 = vec1(3);
 el1_vec2 = vec2(1);
 
 %% Senyals
-v1 = repmat([zeros(1,20) ones(1,20)], 1, 4);  % 8 blocs de 20 mostres
+v1 = repmat([zeros(1,20) ones(1,20)], 1, 4);  % 8 blocs alterns de 20 mostres
 v2 = linspace(20, 100, 160);
 t = 0:2:(2*(160-1));
 
 %% Representació
-figure
+figure(1)
 hold on
 plot(t, v1, 'LineWidth', 1.5)
 plot(t, v2, 'LineWidth', 1.5)

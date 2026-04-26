@@ -2,106 +2,148 @@
 clear all
 close all
 
-%% Paràmetres
-fs = 1e6;
-Tobs = 5e-3;
-t = 0:1/fs:(Tobs-1/fs);
-Z = 50;
+%% Parametres
+fs = 1e8;              % frequencia de mostreig
+dim = 12000;           % nombre de mostres
+t = (0:dim-1)/fs;      % vector temporal
+Z = 50;                % impedancia en ohms
 
-fm = 5e3;
-fc = 100e3;
-m = 0.8;
+Am = 1;                % amplitud moduladora
+fm = 125e3;            % frequencia moduladora
+Ac = 0.25;             % amplitud portadora
+fc = 3.2e6;            % frequencia portadora
+m = 0.8;               % index de modulacio AM
 
 %% Senyals moduladora i portadora
-xm = cos(2*pi*fm*t);
-xc = cos(2*pi*fc*t);
+xm = Am*cos(2*pi*fm*t);
+xc = Ac*cos(2*pi*fc*t);
 
-%% AM
+%% MODULACIO AM
 sAM = (1 + m*xm).*xc;
 
-figure
+figure(1)
 subplot(2,1,1)
-plot(t*1e3, sAM, 'LineWidth', 1.2)
-xlabel('Temps (ms)')
-ylabel('Amplitud')
-title('Senyal AM en el temps')
+plot(t*1e6, sAM, 'LineWidth', 1.2)
+xlabel('Temps (\mus)')
+ylabel('Amplitud (V)')
+title('Senyal AM en el domini temporal')
+axis([0 40 min(sAM)*1.1 max(sAM)*1.1])
 grid on
 
-[Xam,kam] = FuncioTFZP(sAM, fs, 8*length(sAM));
+[Xam, kam] = FuncioTFZP(sAM, fs, 10*dim);
+XamShift = fftshift(Xam);
+SAm = abs(XamShift);
+
 subplot(2,1,2)
-plot(kam/1e3, abs(Xam), 'LineWidth', 1.2)
-xlabel('Freqüència (kHz)')
+plot(kam/1e6, SAm, 'LineWidth', 1.2)
+xlabel('Freqüència (MHz)')
 ylabel('|S_{AM}(f)|')
-title('Espectre de la senyal AM')
-axis([0 200 0 max(abs(Xam))*1.1])
+title('Espectre del senyal AM')
+axis([2.9 3.5 0 max(SAm)*1.1])
 grid on
 
-%% Càlcul de m amb Emax i Emin
-Emax = max(sAM);
-Emin = min(sAM);
-m_temps = (Emax - abs(Emin)) / (Emax + abs(Emin));
+%% Calcul de m a partir d'Emax i Emin de l'envolvent
+envAM = Ac*(1 + m*xm);
+Emax = max(envAM);
+Emin = min(envAM);
+m_temps = (Emax - Emin)/(Emax + Emin);
 
-%% Càlcul de m amb espectre (fc i fc±fm)
-[~,idx_fc] = min(abs(kam - fc));
-[~,idx_fm_sup] = min(abs(kam - (fc+fm)));
-A_fc = abs(Xam(idx_fc));
-A_sb = abs(Xam(idx_fm_sup));
-m_espectre = 2*(A_sb/A_fc);
+disp(['Index de modulacio m calculat en el temps = ', num2str(m_temps)])
 
-%% Potència en dBm
+%% Identificacio de tons de l'espectre
+[~, idx_fc] = min(abs(kam - fc));
+[~, idx_sb_sup] = min(abs(kam - (fc + fm)));
+[~, idx_sb_inf] = min(abs(kam - (fc - fm)));
+
+A_fc = abs(XamShift(idx_fc));
+A_sb_sup = abs(XamShift(idx_sb_sup));
+A_sb_inf = abs(XamShift(idx_sb_inf));
+
+disp(['To portadora a fc = ', num2str(kam(idx_fc)/1e6), ' MHz'])
+disp(['To lateral superior a fc+fm = ', num2str(kam(idx_sb_sup)/1e6), ' MHz'])
+disp(['To lateral inferior a fc-fm = ', num2str(kam(idx_sb_inf)/1e6), ' MHz'])
+
+%% Potencia del senyal AM
 PAMdBm = FuncioPotencia(Xam, kam, Z);
-figure
-plot(kam/1e3, PAMdBm, 'LineWidth', 1.2)
-xlabel('Freqüència (kHz)')
-ylabel('Potència (dBm)')
-title('Potència espectral AM')
-axis([0 200 min(PAMdBm) max(PAMdBm)+5])
+figure(2)
+Pplot = fftshift(real(PAMdBm));
+PplotRel = Pplot - max(Pplot);
+
+plot(kam/1e6, PplotRel, 'LineWidth', 1.2)
+hold on
+plot(kam(idx_fc)/1e6, PplotRel(idx_fc), 'ro', 'MarkerFaceColor', 'r')
+plot(kam(idx_sb_sup)/1e6, PplotRel(idx_sb_sup), 'ko', 'MarkerFaceColor', 'k')
+plot(kam(idx_sb_inf)/1e6, PplotRel(idx_sb_inf), 'ko', 'MarkerFaceColor', 'k')
+
+xlabel('Freqüència (MHz)')
+ylabel('Potència relativa (dBc)')
+title('Potència del senyal AM (pics principals marcats)')
+axis([2.9 3.5 -80 2])
 grid on
 
-%% DBL (doble banda lateral amb portadora suprimida)
+%% Calcul de m a partir de l'espectre
+% En AM: amplitud lateral = (m/2)*amplitud portadora
+m_espectre = 2*(A_sb_sup/A_fc);
+
+disp(['Index de modulacio m calculat amb l''espectre = ', num2str(m_espectre)])
+disp(['Diferencia lateral-portadora (teoric) = ', num2str(20*log10(m/2)), ' dB'])
+disp(['Diferencia lateral-portadora (mesurat) = ', num2str(20*log10(A_sb_sup/A_fc)), ' dB'])
+
+%% MODULACIO DBL
 sDBL = xm.*xc;
-[Xdbl,kdbl] = FuncioTFZP(sDBL, fs, 8*length(sDBL));
+[Xdbl, kdbl] = FuncioTFZP(sDBL, fs, 10*dim);
 
-figure
+figure(3)
 subplot(2,1,1)
-plot(t*1e3, sDBL, 'LineWidth', 1.2)
-xlabel('Temps (ms)')
-ylabel('Amplitud')
-title('Senyal DBL en el temps')
+plot(t*1e6, sDBL, 'LineWidth', 1.2)
+xlabel('Temps (\mus)')
+ylabel('Amplitud (V)')
+title('Senyal DBL en el domini temporal')
+axis([0 40 min(sDBL)*1.1 max(sDBL)*1.1])
 grid on
+
 subplot(2,1,2)
-plot(kdbl/1e3, abs(Xdbl), 'LineWidth', 1.2)
-xlabel('Freqüència (kHz)')
+plot(kdbl/1e6, fftshift(abs(Xdbl)), 'LineWidth', 1.2)
+xlabel('Freqüència (MHz)')
 ylabel('|S_{DBL}(f)|')
-title('Espectre DBL')
-axis([0 200 0 max(abs(Xdbl))*1.1])
+title('Espectre del senyal DBL')
+axis([2.9 3.5 0 max(fftshift(abs(Xdbl)))*1.1])
 grid on
 
-%% BLU (BLS i BLI) amb seno i coseno
-xh = sin(2*pi*fm*t);  % component en quadratura de la moduladora
+%% MODULACIO BLU
+% x~m(t) = Am*sin(2*pi*fm*t)
+xmh = Am*sin(2*pi*fm*t);
 
-sBLS = xm.*cos(2*pi*fc*t) - xh.*sin(2*pi*fc*t);
-sBLI = xm.*cos(2*pi*fc*t) + xh.*sin(2*pi*fc*t);
+% Eq. BLU: sBLU(t) = xm(t)*xc(t) ± x~m(t)*Ac*sin(2*pi*fc*t)
+sBLS = xm.*xc - xmh.*Ac.*sin(2*pi*fc*t);   % Banda lateral superior
+sBLI = xm.*xc + xmh.*Ac.*sin(2*pi*fc*t);   % Banda lateral inferior
 
-[Xbls,kbls] = FuncioTFZP(sBLS, fs, 8*length(sBLS));
-[Xbli,kbli] = FuncioTFZP(sBLI, fs, 8*length(sBLI));
+[Xbls, kbls] = FuncioTFZP(sBLS, fs, 10*dim);
+[Xbli, kbli] = FuncioTFZP(sBLI, fs, 10*dim);
 
-figure
+figure(4)
 subplot(2,1,1)
-plot(kbls/1e3, abs(Xbls), 'LineWidth', 1.2)
-xlabel('Freqüència (kHz)')
-ylabel('|S_{BLS}(f)|')
-title('Espectre BLU - BLS')
-axis([0 200 0 max(abs(Xbls))*1.1])
-grid on
-subplot(2,1,2)
-plot(kbli/1e3, abs(Xbli), 'LineWidth', 1.2)
-xlabel('Freqüència (kHz)')
+plot(kbli/1e6, fftshift(abs(Xbli)), 'LineWidth', 1.2)
+xlabel('Freqüència (MHz)')
 ylabel('|S_{BLI}(f)|')
 title('Espectre BLU - BLI')
-axis([0 200 0 max(abs(Xbli))*1.1])
+axis([2.9 3.5 0 max(fftshift(abs(Xbli)))*1.1])
 grid on
 
-% Variables de validació
+subplot(2,1,2)
+plot(kbls/1e6, fftshift(abs(Xbls)), 'LineWidth', 1.2)
+xlabel('Freqüència (MHz)')
+ylabel('|S_{BLS}(f)|')
+title('Espectre BLU - BLS')
+axis([2.9 3.5 0 max(fftshift(abs(Xbls)))*1.1])
+grid on
+
+%% Variables finals de comprovacio
 m_estimacions = [m_temps, m_espectre];
 freq_interes = [fc-fm, fc, fc+fm];
+
+disp('Valors finals de m:')
+disp(m_estimacions)
+
+disp('Freqüències d''interès (Hz):')
+disp(freq_interes)
