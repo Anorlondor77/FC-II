@@ -67,23 +67,23 @@ disp(['To lateral inferior a fc-fm = ', num2str(kam(idx_sb_inf)/1e6), ' MHz'])
 PAMdBm = FuncioPotencia(Xam, kam, Z);
 figure(2)
 Pplot = fftshift(real(PAMdBm));
-PplotRel = Pplot - max(Pplot);
-
-plot(kam/1e6, PplotRel, 'LineWidth', 1.2)
+plot(kam/1e6, Pplot, 'LineWidth', 1.2)
 hold on
-plot(kam(idx_fc)/1e6, PplotRel(idx_fc), 'ro', 'MarkerFaceColor', 'r')
-plot(kam(idx_sb_sup)/1e6, PplotRel(idx_sb_sup), 'ko', 'MarkerFaceColor', 'k')
-plot(kam(idx_sb_inf)/1e6, PplotRel(idx_sb_inf), 'ko', 'MarkerFaceColor', 'k')
+plot(kam(idx_fc)/1e6, Pplot(idx_fc), 'ro', 'MarkerFaceColor', 'r')
+plot(kam(idx_sb_sup)/1e6, Pplot(idx_sb_sup), 'ko', 'MarkerFaceColor', 'k')
+plot(kam(idx_sb_inf)/1e6, Pplot(idx_sb_inf), 'ko', 'MarkerFaceColor', 'k')
 
 xlabel('Freqüència (MHz)')
-ylabel('Potència relativa (dBc)')
-title('Potència del senyal AM (pics principals marcats)')
-axis([2.9 3.5 -80 2])
+ylabel('Potència (dBm)')
+title('Potència del senyal AM')
+axis([2.9 3.5 min(Pplot)-5 max(Pplot)+3])
 grid on
 
 %% Calcul de m a partir de l'espectre
-% En AM: amplitud lateral = (m/2)*amplitud portadora
-m_espectre = 2*(A_sb_sup/A_fc);
+% En AM: Psband/Pc = (m^2)/4
+P_fc = (1/Z)*(A_fc*conj(A_fc));
+P_sb = (1/Z)*(A_sb_sup*conj(A_sb_sup));
+m_espectre = 2*sqrt(real(P_sb/P_fc));
 
 disp(['Index de modulacio m calculat amb l''espectre = ', num2str(m_espectre)])
 disp(['Diferencia lateral-portadora (teoric) = ', num2str(20*log10(m/2)), ' dB'])
