@@ -94,11 +94,8 @@ grid on
 
 %% PART 4: Espectre de senyals quadrats
 faq = 650;
-fase = mod(faq*t,1);
-sq20 = 2*double(fase < 0.20) - 1;
-sq50 = 2*double(fase < 0.50) - 1;
-q20 = 4*sq20 + 4;
-q50 = 10*sq50;
+q20 = 4*square(2*pi*faq*t,20) + 4;
+q50 = 10*square(2*pi*faq*t,50);
 
 figure(4)
 subplot(2,1,1)
@@ -162,33 +159,32 @@ fw = 4.5e3;
 tw = (0:dimw-1)/fsw;
 g = sin(2*pi*fw*tw);
 
-nw = 0:dimw-1;
-w_ham = 0.54 - 0.46*cos(2*pi*nw/(dimw-1));
-w_tri = 1 - abs((nw-(dimw-1)/2)/((dimw-1)/2));
+w_ham = window(@hamming, dimw);
+w_tri = window(@triang, dimw);
 
-g_ham = g.*w_ham;
-g_tri = g.*w_tri;
+g_ham = g.*w_ham';
+g_tri = g.*w_tri';
 
 figure(7)
 subplot(3,1,1)
 plot(tw*1e3,g,'LineWidth',1.2)
 xlabel('Temps (ms)')
 ylabel('Amplitud')
-title('Finestra rectangular')
+title('g(t) - rectangular')
 grid on
 
 subplot(3,1,2)
 plot(tw*1e3,g_ham,'LineWidth',1.2)
 xlabel('Temps (ms)')
 ylabel('Amplitud')
-title('Finestra hamming')
+title('g_{ham}(t)')
 grid on
 
 subplot(3,1,3)
 plot(tw*1e3,g_tri,'LineWidth',1.2)
 xlabel('Temps (ms)')
 ylabel('Amplitud')
-title('Finestra triangular')
+title('g_{tri}(t)')
 grid on
 
 [G, kG] = FuncioTFZP(g, fsw, 16*dimw);
@@ -196,37 +192,33 @@ grid on
 [Gtri, kGtri] = FuncioTFZP(g_tri, fsw, 16*dimw);
 
 figure(8)
-Gm = fftshift(abs(G));
-Ghm = fftshift(abs(Gham));
-Gtm = fftshift(abs(Gtri));
-
-maskRect = (kG >= 3500) & (kG <= 5500);
-maskHam = (kGham >= 3500) & (kGham <= 5500);
-maskTri = (kGtri >= 3500) & (kGtri <= 5500);
-
 subplot(3,1,1)
-plot(kG, Gm, 'LineWidth',1.2)
+plot(kG, fftshift(abs(G)), 'LineWidth',1.2)
 xlabel('Freqüència (Hz)')
 ylabel('|G(f)|')
-title('Finestra rectangular')
-axis([3500 5500 0 max(Gm(maskRect))*1.1])
+title('Espectre de g(t)')
+axis([3500 5500 0 max(fftshift(abs(G)))*1.1])
 grid on
 
 subplot(3,1,2)
-plot(kGham, Ghm, 'LineWidth',1.2)
+plot(kGham, fftshift(abs(Gham)), 'LineWidth',1.2)
 xlabel('Freqüència (Hz)')
 ylabel('|G_{ham}(f)|')
-title('Finestra hamming')
-axis([3500 5500 0 max(Ghm(maskHam))*1.1])
+title('Espectre de g_{ham}(t)')
+axis([3500 5500 0 max(fftshift(abs(Gham)))*1.1])
 grid on
 
 subplot(3,1,3)
-plot(kGtri, Gtm, 'LineWidth',1.2)
+plot(kGtri, fftshift(abs(Gtri)), 'LineWidth',1.2)
 xlabel('Freqüència (Hz)')
 ylabel('|G_{tri}(f)|')
-title('Finestra triangular')
-axis([3500 5500 0 max(Gtm(maskTri))*1.1])
+title('Espectre de g_{tri}(t)')
+axis([3500 5500 0 max(fftshift(abs(Gtri)))*1.1])
 grid on
+
+Gm = fftshift(abs(G));
+Ghm = fftshift(abs(Gham));
+Gtm = fftshift(abs(Gtri));
 
 idxMain = find(abs(kG-fw) == min(abs(kG-fw)), 1);
 
