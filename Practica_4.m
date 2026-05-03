@@ -92,20 +92,11 @@ for i = 1:numel(idxCanviSigne)
     j2 = J(idxCanviSigne(i)+1);
     betaZeros(i) = b1 - j1*(b2-b1)/(j2-j1);
 end
-betaZeros = betaZeros(1:2);
-fmZero1 = Deltafmax3/betaZeros(1);
-fmZero2 = Deltafmax3/betaZeros(2);
-
-figure(3)
-plot(eixbeta, J, 'LineWidth', 1.2)
-hold on
-plot(betaZeros, besselj(2,betaZeros), 'ro', 'MarkerFaceColor', 'r')
-xlabel('\beta')
-ylabel('J_2(\beta)')
-title('J_2(\beta) i zeros per anul·lar tons fc \pm 2f_m')
-grid on
 
 % Ens quedem amb els dos zeros de J2 dins [2,9]
+if numel(betaZeros) < 2
+    error('No s''han trobat dos zeros de J2(beta) a l''interval [2,9].');
+end
 betaZeros = betaZeros(1:2);
 fmZero1 = Deltafmax3/betaZeros(1);
 fmZero2 = Deltafmax3/betaZeros(2);
